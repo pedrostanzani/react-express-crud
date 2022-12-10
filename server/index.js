@@ -1,5 +1,7 @@
 const express = require('express')
+
 const app = express()
+app.use(express.json())  // express.json() will parse all request bodies as JSON
 
 let books = [
   {
@@ -41,6 +43,31 @@ app.delete('/api/books/:id', (req, res) => {
   const id = Number(req.params.id);
   books = books.filter(book => book.id !== id)
   res.status(204).end()
+})
+
+app.post('/api/books', (req, res) => {
+  const maxId = books.length > 0
+    ? Math.max(...books.map(b => b.id))
+    : 0
+
+  const body = req.body;
+
+  // Handle missing parameters
+  if (!body.title || !body.author || !body.year) {
+    return response.status(400).json({ 
+      error: 'content missing' 
+    })
+  }
+
+  const book = {
+    title: body.title,
+    author: body.author,
+    year: body.year,
+    id: maxId + 1
+  }
+
+  books = books.concat(book);
+  res.json(book);
 })
 
 const PORT = 3001;

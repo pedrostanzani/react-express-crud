@@ -1,0 +1,8 @@
+POST http://localhost:3001/api/books/
+Content-Type: application/json
+
+{
+  "title": "The Great Gatsby",
+  "author": "F.S. Fitzgerald",
+  "year": 1925
+}
