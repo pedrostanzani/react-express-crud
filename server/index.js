@@ -1,7 +1,11 @@
 const express = require('express')
+const morgan = require('morgan');
 
 const app = express()
+
+// Middleware
 app.use(express.json())  // express.json() will parse all request bodies as JSON
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 
 let books = [
   {
