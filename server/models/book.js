@@ -13,9 +13,9 @@ mongoose.connect(url)
   })
 
 const bookSchema = new mongoose.Schema({
-  title: String,
-  author: String,
-  year: Number,
+  title:  { type: String, minLength: 1, required: true },
+  author: { type: String, minLength: 1, required: true },
+  year:   { type: Number, required: true },
 });
 
 bookSchema.set('toJSON', {

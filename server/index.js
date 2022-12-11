@@ -52,10 +52,6 @@ app.delete('/api/books/:id', (req, res, next) => {
 app.post('/api/books', (req, res, next) => {
   const body = req.body;
 
-  if (!body.title || !body.author || !body.year) {
-    return res.status(400).json({ error: 'content missing' })
-  }
-
   const book = new Book({
     title: body.title,
     author: body.author,
@@ -70,17 +66,15 @@ app.post('/api/books', (req, res, next) => {
 })
 
 app.put('/api/books/:id', (req, res, next) => {
-  const body = req.body
-
-  const book = {
-    title: body.title,
-    author: body.author,
-    year: body.year
-  }
+  const { title, author, year } = req.body;
 
   // new: true allows us to pass modified object as a parameter, and not
   // the default new object
-  Book.findByIdAndUpdate(req.params.id, book, { new: true })
+  Book.findByIdAndUpdate(req.params.id, { title, author, year }, { 
+      new: true,
+      runValidators: true,
+      context: 'query'
+    })
     .then(updatedBook => {
       res.json(updatedBook)
     })
@@ -104,6 +98,8 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).send({ error: 'malformatted id' })
   } else if (err.name === 'SyntaxError') {
     return res.status(400).send({ error: 'parsing error' })
+  } else if (err.name === 'ValidationError') {
+    return res.status(400).json({ error: err.message })
   }
   
   next(err);
