@@ -1,80 +1,98 @@
-const express = require('express')
-const morgan = require('morgan');
+// Load environment variables
+require('dotenv').config();
 
+// Initialize application
+const express = require('express');
 const app = express()
 
-// Middleware
-app.use(express.json())  // express.json() will parse all request bodies as JSON
+// Set up request logging
+const morgan = require('morgan');
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 
-let books = [
-  {
-    id: 1,
-    title: 'The Catcher in the Rye',
-    author: 'J.D. Salinger',
-    year: 1951
-  },
-  {
-    id: 2,
-    title: 'To Kill a Mockingbird',
-    author: 'Harper Lee',
-    year: 1960
-  },
+// Enable request body parsing
+app.use(express.json())
 
-];
+// Import database model
+const Book = require('./models/book');
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+// Routes
+app.get('/api/books', (req, res, next) => {
+  Book.find({})
+    .then(books => {
+      res.json(books)
+    })
+    .catch(error => next(error));
 })
 
-app.get('/api/books', (req, res) => {
-  res.json(books);
+app.get('/api/books/:id', (req, res, next) => {
+  Book.findById(req.params.id)
+    .then(book => {
+      if (book) {
+        res.json(book);
+      } else {
+        res.status(404).end();
+      }
+    })
+    .catch(error => next(error));
 })
 
-app.get('/api/books/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const book = books.find(book => book.id === id);
-
-  if (book) { res.json(book); } 
-  else { res.status(404).end(); }
-})
-
-app.delete('/api/books/:id', (req, res) => {
+app.delete('/api/books/:id', (req, res, next) => {
   // Excerpt from: https://fullstackopen.com/en/part3/node_js_and_express#deleting-resources
-  // There's no consensus on what status code should be returned to a DELETE request if the resource does not exist. 
-  // Really, the only two options are 204 and 404. 
-  // For the sake of simplicity our application will respond with 204 in both cases.
-  const id = Number(req.params.id);
-  books = books.filter(book => book.id !== id)
-  res.status(204).end()
+  // There's no consensus on what status code should be returned to a DELETE
+  // request if the resource does not exist. Really, the only two options are 
+  // 204 and 404. For the sake of simplicity our application will respond with 
+  // 204 in both cases.
+  Book.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
-app.post('/api/books', (req, res) => {
-  const maxId = books.length > 0
-    ? Math.max(...books.map(b => b.id))
-    : 0
-
+app.post('/api/books', (req, res, next) => {
   const body = req.body;
 
-  // Handle missing parameters
   if (!body.title || !body.author || !body.year) {
-    return response.status(400).json({ 
-      error: 'content missing' 
-    })
+    return res.status(400).json({ error: 'content missing' })
   }
 
-  const book = {
+  const book = new Book({
     title: body.title,
     author: body.author,
-    year: body.year,
-    id: maxId + 1
-  }
+    year: body.year
+  })
 
-  books = books.concat(book);
-  res.json(book);
+  book.save()
+    .then(savedBook => {
+      res.json(savedBook);
+    })
+    .catch(error => next(error));
 })
 
-const PORT = 3001;
+const unknownEndpoint = (req, res) => {
+  console.log("--> Unknown endpoint handler called.");
+  res.status(404).send({ error: 'unknown endpoint' });
+}
+app.use(unknownEndpoint);
+
+
+const errorHandler = (err, req, res, next) => {
+  // Excerpt from the express.js documentation:
+  // If you pass anything to the next() function (except the string 'route'), 
+  // Express regards the current request as being an error and will skip any 
+  // remaining non-error handling routing and middleware functions.
+  console.log(err);
+  if (err.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
+  } else if (err.name === 'SyntaxError') {
+    return res.status(400).send({ error: 'parsing error' })
+  }
+  
+  next(err);
+}
+app.use(errorHandler);
+
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 })

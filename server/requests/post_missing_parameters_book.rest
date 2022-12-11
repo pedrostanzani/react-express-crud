@@ -3,6 +3,5 @@ Content-Type: application/json
 
 {
   "title": "1984",
-  "author": "Orwell",
-  "year": 1949
+  "author": "Orwell"
 }
