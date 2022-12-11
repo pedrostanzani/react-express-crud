@@ -69,6 +69,24 @@ app.post('/api/books', (req, res, next) => {
     .catch(error => next(error));
 })
 
+app.put('/api/books/:id', (req, res, next) => {
+  const body = req.body
+
+  const book = {
+    title: body.title,
+    author: body.author,
+    year: body.year
+  }
+
+  // new: true allows us to pass modified object as a parameter, and not
+  // the default new object
+  Book.findByIdAndUpdate(req.params.id, book, { new: true })
+    .then(updatedBook => {
+      res.json(updatedBook)
+    })
+    .catch(error => next(error))
+})
+
 const unknownEndpoint = (req, res) => {
   console.log("--> Unknown endpoint handler called.");
   res.status(404).send({ error: 'unknown endpoint' });
